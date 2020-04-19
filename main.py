@@ -1,68 +1,39 @@
 from flask import Flask, request
 from flask_restful import Api, Resource
-from flask_sqlalchemy import SQLAlchemy
-from flask_marshmallow import Marshmallow
-from datetime import datetime
+from Bike import Bike
+from serial import Serial
+from time import sleep
 
 app = Flask(__name__)
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///data.db'
-app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-db = SQLAlchemy(app)
-ma = Marshmallow(app)
 api = Api(app)
-
-# 
-# Models
-# 
-
-
-class Update(db.Model):
-    datetime = db.Column(db.DateTime, primary_key=True, default=datetime.now)
-    bike = db.Column(db.Integer)
-    longtitude = db.Column(db.Float)
-    latitude = db.Column(db.Float)
-
+ser = Serial(port='COM4', baudrate=9600, timeout=2)
+sleep(2)
+bike = Bike(ser)
 
 #
-# Schemas
+# Resources
 #
 
-
-class UpdateSchema(ma.Schema):
-    class Meta:
-        fields = ("datetime", "bike", "longtitude", "latitude")
-
-update_schema = UpdateSchema()
-updates_schema = UpdateSchema(many=True)
-
-
-#
-# RESTful Resources
-#
-
-
-class UpdateListResource(Resource):
+class UpdateResource(Resource):
     def get(self):
-        updates = Update.query.all()
-        return updates_schema.dump(updates)
+        return bike.getStatus()
 
+api.add_resource(UpdateResource, '/status')
+
+class UnlockResource(Resource):
     def post(self):
-        new_update = Update(
-            bike = request.json['bike'],
-            longtitude = request.json['longtitude'],
-            latitude = request.json['latitude']
-        )
-        db.session.add(new_update)
-        db.session.commit()
-        return update_schema.dump(new_update)
+        bike.unlock()
 
-
-api.add_resource(UpdateListResource, '/updates')
+api.add_resource(UnlockResource, '/unlock')
 
 
 #
-# Shit
+# Main
 #
 
 if __name__ == '__main__':
-    app.run(port='80', debug=True)
+    # initialiseer seriele Bike
+
+    app.run(port='80', debug=True, use_reloader=False)
+    
+    ser.close()

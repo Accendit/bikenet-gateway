@@ -10,6 +10,9 @@ flask = "*"
 flask-restful = "*"
 flask-sqlalchemy = "*"
 flask-marshmallow = "*"
+pyserial = "*"
+asyncio = "*"
+logger = "*"
 
 [requires]
 python_version = "3.8"
